@@ -49,6 +49,14 @@ class MainWindow(MSFluentWindow):
             communicate.copyright.connect(self.show_update_copyright)
 
 
+        self.custom_tab_objects = []
+        if custom_tabs := config.get('custom_tabs'):
+            for tab in custom_tabs:
+                tab_obj = init_class_by_name(tab[0], tab[1])
+                tab_obj.executor = executor
+                self.addSubInterface(tab_obj, tab_obj.icon, tab_obj.name)
+                self.custom_tab_objects.append(tab_obj)
+
         self.addSubInterface(self.start_tab, FluentIcon.PLAY, self.tr('Capture'))
 
         self.first_task_tab = None
@@ -87,14 +95,6 @@ class MainWindow(MSFluentWindow):
             if self.first_task_tab is None:
                 self.first_task_tab = self.trigger_tab
             self.addSubInterface(self.trigger_tab, FluentIcon.ROBOT, self.tr('Triggers'))
-
-        self.custom_tab_objects = []
-        if custom_tabs := config.get('custom_tabs'):
-            for tab in custom_tabs:
-                tab_obj = init_class_by_name(tab[0], tab[1])
-                tab_obj.executor = executor
-                self.addSubInterface(tab_obj, tab_obj.icon, tab_obj.name)
-                self.custom_tab_objects.append(tab_obj)
 
         if debug:
             from ok.gui.debug.DebugTab import DebugTab
