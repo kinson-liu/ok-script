@@ -88,11 +88,13 @@ class MainWindow(MSFluentWindow):
                 self.first_task_tab = self.trigger_tab
             self.addSubInterface(self.trigger_tab, FluentIcon.ROBOT, self.tr('Triggers'))
 
+        self.custom_tab_objects = []
         if custom_tabs := config.get('custom_tabs'):
             for tab in custom_tabs:
                 tab_obj = init_class_by_name(tab[0], tab[1])
                 tab_obj.executor = executor
                 self.addSubInterface(tab_obj, tab_obj.icon, tab_obj.name)
+                self.custom_tab_objects.append(tab_obj)
 
         if debug:
             from ok.gui.debug.DebugTab import DebugTab
@@ -226,6 +228,13 @@ class MainWindow(MSFluentWindow):
                 self.app.start_controller.start(args.get('task') - 1, exit_after=args.get('exit'))
             elif self.basic_global_config.get('Auto Start Game When App Starts'):
                 self.app.start_controller.start()
+            # Switch to default tab if configured
+            default_tab = self.config.get('default_tab')
+            if default_tab and self.custom_tab_objects:
+                for tab_obj in self.custom_tab_objects:
+                    if tab_obj.__class__.__name__ == default_tab or getattr(tab_obj, 'name', '') == default_tab:
+                        self.switchTo(tab_obj)
+                        break
         super().showEvent(event)
 
     def set_window_size(self, width, height, min_width, min_height):
