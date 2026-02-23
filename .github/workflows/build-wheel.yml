@@ -1,0 +1,47 @@
+name: Build and Release Wheel
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build dependencies
+        run: |
+          pip install Cython get_pypi_latest_version setuptools wheel
+
+      - name: Build wheel
+        run: |
+          python setup.py bdist_wheel
+
+      - name: Get wheel filename and version
+        id: wheel_info
+        shell: bash
+        run: |
+          WHEEL_FILE=$(ls dist/*.whl)
+          WHEEL_NAME=$(basename $WHEEL_FILE)
+          VERSION=$(echo $WHEEL_NAME | sed 's/ok_script-\(.*\)-cp.*/\1/')
+          echo "wheel_file=$WHEEL_FILE" >> $GITHUB_OUTPUT
+          echo "wheel_name=$WHEEL_NAME" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.wheel_info.outputs.version }}
+          name: ok-script v${{ steps.wheel_info.outputs.version }}
+          files: dist/*.whl
+          generate_release_notes: true
