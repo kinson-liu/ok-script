@@ -27,21 +27,21 @@ jobs:
         run: |
           python setup.py bdist_wheel
 
-      - name: Get wheel filename and version
+      - name: Get version and rename wheel
         id: wheel_info
         shell: bash
         run: |
-          WHEEL_FILE=$(ls dist/*.whl)
-          WHEEL_NAME=$(basename $WHEEL_FILE)
-          VERSION=$(echo $WHEEL_NAME | sed 's/ok_script-\(.*\)-cp.*/\1/')
-          echo "wheel_file=$WHEEL_FILE" >> $GITHUB_OUTPUT
-          echo "wheel_name=$WHEEL_NAME" >> $GITHUB_OUTPUT
+          WHEEL_NAME=$(basename dist/*.whl)
+          VERSION=$(echo $WHEEL_NAME | sed 's/ok_script-\([^-]*\)-.*/\1/')
+          FIXED_NAME="ok_script-${VERSION}-cp312-none-win_amd64.whl"
+          mv "dist/$WHEEL_NAME" "dist/$FIXED_NAME"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "fixed_name=$FIXED_NAME" >> $GITHUB_OUTPUT
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.wheel_info.outputs.version }}
           name: ok-script v${{ steps.wheel_info.outputs.version }}
-          files: dist/*.whl
-          generate_release_notes: true
+          files: dist/${{ steps.wheel_info.outputs.fixed_name }}
+          make_latest: true
