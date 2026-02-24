@@ -21,7 +21,9 @@ def config_widget(config_type, config_desc, config, key, value, task):
             desc = task.get_global_config_desc(key)
             return LabelAndGlobal(desc, config, key)
         elif the_type['type'] == 'text_edit':
-            return LabelAndTextEdit(config_desc, config, key)
+            return LabelAndTextEdit(config_desc, config, key,
+                                    height=the_type.get('height'),
+                                    save_callback=the_type.get('save_callback'))
         else:
             raise Exception('Unknown config type')
     value = config.get_default(key)
