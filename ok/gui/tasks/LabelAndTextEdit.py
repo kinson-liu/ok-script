@@ -38,6 +38,13 @@ class LabelAndTextEdit(ConfigLabelAndWidget):
 
         self.add_widget(container)
 
+        if hasattr(config, 'add_listener'):
+            config.add_listener(key, self._on_config_changed)
+
+    def _on_config_changed(self, value):
+        if self.text_edit.toPlainText() != value:
+            self.text_edit.setText(value)
+
     def update_value(self):
         self.text_edit.setText(self.config.get(self.key))
 
