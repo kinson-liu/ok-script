@@ -7,7 +7,7 @@ from ok.gui.tasks.ConfigLabelAndWidget import ConfigLabelAndWidget
 
 class LabelAndTextEdit(ConfigLabelAndWidget):
 
-    def __init__(self, config_desc, config, key: str, height=None, save_callback=None):
+    def __init__(self, config_desc, config, key: str, height=None, save_callback=None, delete_callback=None):
         super().__init__(config_desc, config, key)
         self.key = key
 
@@ -28,12 +28,18 @@ class LabelAndTextEdit(ConfigLabelAndWidget):
         self.text_edit.textChanged.connect(self.value_changed)
         container_layout.addWidget(self.text_edit)
 
-        if save_callback:
+        if save_callback or delete_callback:
             btn_layout = QHBoxLayout()
+            if delete_callback:
+                delete_btn = PushButton(FluentIcon.DELETE, "删除")
+                delete_btn.setStyleSheet("PushButton { color: red; border-color: red; }")
+                delete_btn.clicked.connect(lambda: delete_callback(self.text_edit.toPlainText()))
+                btn_layout.addWidget(delete_btn)
             btn_layout.addStretch()
-            save_btn = PushButton(FluentIcon.SAVE, "保存")
-            save_btn.clicked.connect(lambda: save_callback(self.text_edit.toPlainText()))
-            btn_layout.addWidget(save_btn)
+            if save_callback:
+                save_btn = PushButton(FluentIcon.SAVE, "保存")
+                save_btn.clicked.connect(lambda: save_callback(self.text_edit.toPlainText()))
+                btn_layout.addWidget(save_btn)
             container_layout.addLayout(btn_layout)
 
         self.add_widget(container)
