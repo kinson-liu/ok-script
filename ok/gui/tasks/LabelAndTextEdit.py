@@ -45,6 +45,8 @@ class LabelAndTextEdit(ConfigLabelAndWidget):
 
         if hasattr(config, 'add_listener'):
             config.add_listener(key, self._on_config_changed)
+            cb = self._on_config_changed
+            self.destroyed.connect(lambda: config.remove_listener(key, cb) if hasattr(config, 'remove_listener') else None)
 
     def _on_config_changed(self, value):
         if self.text_edit.toPlainText() != value:
