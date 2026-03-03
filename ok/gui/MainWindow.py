@@ -57,7 +57,8 @@ class MainWindow(MSFluentWindow):
                 self.addSubInterface(tab_obj, tab_obj.icon, tab_obj.name)
                 self.custom_tab_objects.append(tab_obj)
 
-        self.addSubInterface(self.start_tab, FluentIcon.PLAY, self.tr('Capture'))
+        if not config.get('skip_default_task_tabs', False):
+            self.addSubInterface(self.start_tab, FluentIcon.PLAY, self.tr('Capture'))
 
         self.first_task_tab = None
         self.grouped_task_tabs = []
