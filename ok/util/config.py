@@ -102,14 +102,22 @@ class Config(dict):
     def add_listener(self, key, callback):
         self._listeners.setdefault(key, []).append(callback)
 
+    def remove_listener(self, key, callback):
+        listeners = self._listeners.get(key, [])
+        if callback in listeners:
+            listeners.remove(callback)
+
     def __setitem__(self, key, value):
         if value != self.get(key) and self.validate(key, value):
             old_value = self.get(key)
             super().__setitem__(key, value)
             if old_value != value:
                 self.save_file()
-                for cb in self._listeners.get(key, []):
-                    cb(value)
+                for cb in list(self._listeners.get(key, [])):
+                    try:
+                        cb(value)
+                    except RuntimeError:
+                        self._listeners[key].remove(cb)
 
     def __getitem__(self, key):
         try:
