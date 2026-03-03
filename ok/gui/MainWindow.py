@@ -61,40 +61,44 @@ class MainWindow(MSFluentWindow):
 
         self.first_task_tab = None
         self.grouped_task_tabs = []
-        if self.executor.onetime_tasks:
-            from ok.gui.tasks.OneTimeTaskTab import OneTimeTaskTab
-            from collections import defaultdict
+        skip_default_task_tabs = config.get('skip_default_task_tabs', False)
+        if self.custom_tab_objects and skip_default_task_tabs:
+            self.first_task_tab = self.custom_tab_objects[0]
+        else:
+            if self.executor.onetime_tasks:
+                from ok.gui.tasks.OneTimeTaskTab import OneTimeTaskTab
+                from collections import defaultdict
 
-            groups = defaultdict(list)
-            standalone_tasks = []
-            for task in executor.onetime_tasks:
-                if task.group_name:
-                    groups[task.group_name].append(task)
-                else:
-                    standalone_tasks.append(task)
+                groups = defaultdict(list)
+                standalone_tasks = []
+                for task in executor.onetime_tasks:
+                    if task.group_name:
+                        groups[task.group_name].append(task)
+                    else:
+                        standalone_tasks.append(task)
 
-            if standalone_tasks:
-                self.onetime_tab = OneTimeTaskTab(tasks=standalone_tasks)
+                if standalone_tasks:
+                    self.onetime_tab = OneTimeTaskTab(tasks=standalone_tasks)
+                    if self.first_task_tab is None:
+                        self.first_task_tab = self.onetime_tab
+                    logger.debug(f"add default onetime_tab len {len(standalone_tasks)}")
+                    self.addSubInterface(self.onetime_tab, FluentIcon.BOOK_SHELF, self.tr('Tasks'))
+
+                for group_name, tasks_in_group in groups.items():
+                    group_tab = OneTimeTaskTab(tasks=tasks_in_group)
+                    group_icon = tasks_in_group[0].group_icon
+                    if self.first_task_tab is None:
+                        self.first_task_tab = group_tab
+                    logger.debug(f"add grouped_task_tabs {group_name} len {len(tasks_in_group)}")
+                    self.addSubInterface(group_tab, group_icon, self.app.tr(group_name))
+                    self.grouped_task_tabs.append(group_tab)
+
+            if len(executor.trigger_tasks) > 0:
+                from ok.gui.tasks.TriggerTaskTab import TriggerTaskTab
+                self.trigger_tab = TriggerTaskTab()
                 if self.first_task_tab is None:
-                    self.first_task_tab = self.onetime_tab
-                logger.debug(f"add default onetime_tab len {len(standalone_tasks)}")
-                self.addSubInterface(self.onetime_tab, FluentIcon.BOOK_SHELF, self.tr('Tasks'))
-
-            for group_name, tasks_in_group in groups.items():
-                group_tab = OneTimeTaskTab(tasks=tasks_in_group)
-                group_icon = tasks_in_group[0].group_icon
-                if self.first_task_tab is None:
-                    self.first_task_tab = group_tab
-                logger.debug(f"add grouped_task_tabs {group_name} len {len(tasks_in_group)}")
-                self.addSubInterface(group_tab, group_icon, self.app.tr(group_name))
-                self.grouped_task_tabs.append(group_tab)
-
-        if len(executor.trigger_tasks) > 0:
-            from ok.gui.tasks.TriggerTaskTab import TriggerTaskTab
-            self.trigger_tab = TriggerTaskTab()
-            if self.first_task_tab is None:
-                self.first_task_tab = self.trigger_tab
-            self.addSubInterface(self.trigger_tab, FluentIcon.ROBOT, self.tr('Triggers'))
+                    self.first_task_tab = self.trigger_tab
+                self.addSubInterface(self.trigger_tab, FluentIcon.ROBOT, self.tr('Triggers'))
 
         if debug:
             from ok.gui.debug.DebugTab import DebugTab
@@ -318,16 +322,23 @@ class MainWindow(MSFluentWindow):
         logger.debug(f'navigate_tab {index}')
         if index == "start":
             self.switchTo(self.start_tab)
-        elif index == "onetime" and self.onetime_tab is not None:
-            self.switchTo(self.onetime_tab)
-        elif index == "trigger" and self.trigger_tab is not None:
-            self.switchTo(self.trigger_tab)
+        elif index == "onetime":
+            if self.onetime_tab is not None:
+                self.switchTo(self.onetime_tab)
+            elif self.first_task_tab is not None:
+                self.switchTo(self.first_task_tab)
+        elif index == "trigger":
+            if self.trigger_tab is not None:
+                self.switchTo(self.trigger_tab)
+            elif self.first_task_tab is not None:
+                self.switchTo(self.first_task_tab)
         elif index == "about" and self.about_tab is not None:
             self.switchTo(self.about_tab)
 
     def executor_paused(self, paused):
         if not paused and self.stackedWidget.currentIndex() == 0:
-            self.switchTo(self.first_task_tab)
+            if self.first_task_tab and self.first_task_tab not in self.custom_tab_objects:
+                self.switchTo(self.first_task_tab)
         self.show_notification(self.tr("Start Success.") if not paused else self.tr("Pause Success."), tray=not paused)
 
     def closeEvent(self, event):
