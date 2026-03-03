@@ -32,7 +32,13 @@ class LabelAndTextEdit(ConfigLabelAndWidget):
             btn_layout = QHBoxLayout()
             if delete_callback:
                 delete_btn = PushButton(FluentIcon.DELETE, "删除")
-                delete_btn.setStyleSheet("color: red; border-color: red;")
+                delete_btn.setStyleSheet("""
+                    color: red;
+                    border: 1px solid red;
+                    background-color: transparent;
+                    padding: 5px 12px;
+                    border-radius: 5px;
+                """)
                 delete_btn.clicked.connect(lambda: delete_callback(self.text_edit.toPlainText()))
                 btn_layout.addWidget(delete_btn)
             btn_layout.addStretch()
