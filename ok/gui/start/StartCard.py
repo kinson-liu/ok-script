@@ -1,5 +1,6 @@
 import os
 import subprocess
+import time
 import zipfile
 from ctypes import windll, wintypes
 from pathlib import Path
@@ -63,6 +64,10 @@ class StartCard(SettingCard):
 
         self.handler = Handler(exit_event, "StartCard")
         self.current_hotkey = "UNINIT"
+        self._hotkey_press_time = 0  # 按下时间戳
+        self._hotkey_vk = 0  # 当前热键的 VK 码
+        self._long_press_threshold = 1.0  # 长按阈值（秒）
+        self._long_press_triggered = False  # 是否已触发长按停止
         self.handler.post(self.check_hotkey, 0.1)
         logger.debug('basic_options.start/stop: {}'.format(self.basic_options.get('Start/Stop')))
 
@@ -86,6 +91,14 @@ class StartCard(SettingCard):
             og.executor.pause()
         else:
             og.app.start_controller.start()
+
+    @staticmethod
+    def long_pressed():
+        """长按热键：真正停止当前任务"""
+        logger.info('hotkey long pressed, stopping current task')
+        og.executor.stop_current_task()
+        if not og.executor.paused:
+            og.executor.pause()
 
     @staticmethod
     def open_install_folder():
@@ -154,6 +167,13 @@ class StartCard(SettingCard):
                 self.status_bar.setState(False)
             self.status_bar.show()
 
+    def _is_key_held(self):
+        """检查当前热键是否仍被按住"""
+        if self._hotkey_vk:
+            state = windll.user32.GetAsyncKeyState(self._hotkey_vk)
+            return bool(state & 0x8000)
+        return False
+
     def check_hotkey(self):
         new_hotkey = self.basic_options.get('Start/Stop')
         if new_hotkey != self.current_hotkey:
@@ -161,12 +181,28 @@ class StartCard(SettingCard):
             self.current_hotkey = new_hotkey
             self.hotkey_changed.emit()
 
+        # 长按检测：按住超过阈值则触发停止
+        if self._hotkey_press_time > 0:
+            if self._is_key_held():
+                elapsed = time.time() - self._hotkey_press_time
+                if elapsed >= self._long_press_threshold and not self._long_press_triggered:
+                    self._long_press_triggered = True
+                    self.long_pressed()
+            else:
+                # 按键已松开
+                if not self._long_press_triggered:
+                    # 短按：暂停/恢复
+                    self.clicked()
+                self._hotkey_press_time = 0
+                self._long_press_triggered = False
+
         msg = wintypes.MSG()
         if windll.user32.PeekMessageW(byref(msg), None, 0, 0, 1):
             if msg.message == 0x0312:  # WM_HOTKEY
                 logger.debug(f'hotkey pressed {msg}')
                 if msg.wParam == 999:
-                    self.clicked()
+                    self._hotkey_press_time = time.time()
+                    self._long_press_triggered = False
 
         self.handler.post(self.check_hotkey, 0.1)
 
@@ -175,7 +211,9 @@ class StartCard(SettingCard):
         vk_map = {'F9': 0x78, 'F10': 0x79, 'F11': 0x7A, 'F12': 0x7B}
 
         if hotkey and hotkey != 'None' and hotkey in vk_map:
-            if not windll.user32.RegisterHotKey(None, 999, 0, vk_map[hotkey]):
+            self._hotkey_vk = vk_map[hotkey]
+            if not windll.user32.RegisterHotKey(None, 999, 0, self._hotkey_vk):
                 logger.error(f"Failed to register hotkey {hotkey}")
         else:
+            self._hotkey_vk = 0
             logger.debug(f"Hotkey disabled or invalid: {hotkey}")
