@@ -12,7 +12,7 @@ basic_options = ConfigOption('Basic Options', {
     'Exit App when Game Exits': False,
     'Use DirectML': 'Yes',
     'Trigger Interval': 1,
-    'Start/Stop': 'F10',
+    'Start/Stop': 'F9',
     'Kill Launcher after Start': False,
     'Launch with DX11': False
 }, config_type={'Use DirectML': {'type': "drop_down", 'options': ['Auto', 'Yes', 'No']},

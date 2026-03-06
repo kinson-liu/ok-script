@@ -289,6 +289,7 @@ class OK:
         logger.info(
             f"pyappify  app_version:{pyappify.app_version}, app_profile:{pyappify.app_profile}, pyappify_version:{pyappify.pyappify_version} pyappify_upgradeable:{pyappify.pyappify_upgradeable}, pyappify_executable:{pyappify.pyappify_executable}")
         config['debug'] = config.get("debug", False)
+        config['start_key'] = config.get("start_key", 'F9')
         self.task_executor = None
         self._app = None
         self.debug = config['debug']
@@ -306,6 +307,7 @@ class OK:
             if len(available_methods) > 1:
                 basic_options.default_config['Windows Capture'] = available_methods[0]
                 basic_options.config_type['Windows Capture'] = {'type': 'drop_down', 'options': available_methods}
+        basic_options.default_config['Start/Stop'] = config['start_key']
         self.global_config.get_config(basic_options)
         og.global_config = self.global_config
         og.set_use_dml()
